@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>별똥별 잡기 게임 ✨</title>
+<style>
+body {
+  margin: 0;
+  overflow: hidden;
+  background: linear-gradient(to bottom, #0b0c1a, #1a1740);
+  height: 100vh;
+  font-family: 'Press Start 2P', monospace;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+}
+
+h1 {
+  font-size: 16px;
+  margin-top: 20px;
+  color: #ffdd55;
+  text-shadow: 0 0 5px #fff;
+}
+
+#game {
+  position: relative;
+  width: 100%;
+  height: 80vh;
+  overflow: hidden;
+}
+
+/* 중앙 영역 시각적 표시 */
+#playArea {
+  position: absolute;
+  top: 20%;
+  left: 20%;
+  width: 60%;
+  height: 60%;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 10px;
+  pointer-events: none;
+}
+
+.star {
+  position: absolute;
+  background: yellow;
+  box-shadow: 0 0 6px 3px white;
+  border-radius: 50%;
+  image-rendering: pixelated;
+  cursor: pointer;
+}
+
+#score, #timer {
+  font-size: 14px;
+  margin: 5px;
+  text-shadow: 0 0 4px #fff;
+}
+
+#wish {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 18px;
+  color: #ffccff;
+  text-shadow: 0 0 10px #fff;
+  opacity: 0;
+  transition: opacity 0.4s ease-out;
+}
+
+#startScreen, #end {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+#startBtn, #restart {
+  margin-top: 15px;
+  padding: 8px 12px;
+  background: #ffdd55;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #333;
+  font-family: inherit;
+}
+
+#startBtn:hover, #restart:hover {
+  background: #ffe67f;
+}
+
+#end {
+  display: none;
+}
+</style>
+</head>
+
+<body>
+<h1>🌠 별똥별 잡기 게임 🌠</h1>
+<div id="score">점수: 0</div>
+<div id="timer">남은 시간: 20초</div>
+
+<div id="game">
+  <div id="playArea"></div>
+</div>
+
+<div id="wish">Make a wish!</div>
+
+<!-- 시작 화면 -->
+<div id="startScreen">
+  <h2>별똥별을 잡아보세요!</h2>
+  <button id="startBtn">게임 시작</button>
+</div>
+
+<!-- 종료 화면 -->
+<div id="end">
+  <h2>게임 종료!</h2>
+  <p id="finalScore"></p>
+  <button id="restart">다시 하기</button>
+</div>
+
+<script>
+const game = document.getElementById('game');
+const playArea = document.getElementById('playArea');
+const scoreDisplay = document.getElementById('score');
+const timerDisplay = document.getElementById('timer');
+const wishText = document.getElementById('wish');
+const startScreen = document.getElementById('startScreen');
+const endScreen = document.getElementById('end');
+const finalScore = document.getElementById('finalScore');
+const startBtn = document.getElementById('startBtn');
+const restartBtn = document.getElementById('restart');
+
+let score = 0;
+let timeLeft = 20;
+let gameInterval;
+let timerInterval;
+let gameActive = false;
+
+function random(min, max) {
+  return Math.random() * (max - min) + min;
+}
+
+function createStar() {
+  if (!gameActive) return;
+
+  const star = document.createElement('div');
+  star.classList.add('star');
+
+  // ⭐ 별 크기 50% 증가 (기존 8~14 → 12~21)
+  const size = random(12, 21);
+  star.style.width = `${size}px`;
+  star.style.height = `${size}px`;
+
+  // 플레이 영역 기준으로 별 위치 계산
+  const playRect = playArea.getBoundingClientRect();
+  const minX = playRect.left;
+  const maxX = playRect.right - size;
+  const startX = random(minX, maxX);
+  star.style.left = `${startX}px`;
+
+  // y 범위: playArea의 위쪽에서 시작, 아래쪽 테두리까지
+  const startY = playRect.top - size;
+  const endY = playRect.bottom - size;
+  star.style.top = `${startY}px`;
+
+  const fallSpeed = random(2, 4);
+  game.appendChild(star);
+
+  const fall = setInterval(() => {
+    if (!gameActive) {
+      clearInterval(fall);
+      star.remove();
+      return;
+    }
+
+    star.style.top = `${star.offsetTop + fallSpeed}px`;
+
+    // playArea의 아래 테두리에 닿으면 제거
+    const starRect = star.getBoundingClientRect();
+    if (starRect.bottom >= playRect.bottom) {
+      star.remove();
+      clearInterval(fall);
+    }
+  }, 16);
+
+  star.addEventListener('click', () => {
+    score++;
+    scoreDisplay.textContent = `점수: ${score}`;
+    star.remove();
+    showWish();
+  });
+}
+
+function showWish() {
+  wishText.style.opacity = 1;
+  setTimeout(() => {
+    wishText.style.opacity = 0;
+  }, 600);
+}
+
+function startGame() {
+  startScreen.style.display = 'none';
+  endScreen.style.display = 'none';
+  score = 0;
+  timeLeft = 20;
+  gameActive = true;
+  scoreDisplay.textContent = `점수: 0`;
+  timerDisplay.textContent = `남은 시간: 20초`;
+
+  gameInterval = setInterval(createStar, 500);
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    timerDisplay.textContent = `남은 시간: ${timeLeft}초`;
+    if (timeLeft <= 0) endGame();
+  }, 1000);
+}
+
+function endGame() {
+  gameActive = false;
+  clearInterval(gameInterval);
+  clearInterval(timerInterval);
+  document.querySelectorAll('.star').forEach(s => s.remove());
+  finalScore.textContent = `최종 점수: ${score}`;
+  endScreen.style.display = 'block';
+}
+
+startBtn.addEventListener('click', startGame);
+restartBtn.addEventListener('click', startGame);
+</script>
+</body>
+</html>
