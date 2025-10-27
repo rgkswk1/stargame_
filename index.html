@@ -50,7 +50,6 @@ h1 {
   background: yellow;
   box-shadow: 0 0 6px 3px white;
   border-radius: 50%;
-  image-rendering: pixelated;
   cursor: pointer;
 }
 
@@ -101,7 +100,6 @@ h1 {
 }
 </style>
 </head>
-
 <body>
 <h1>🌠 별똥별 잡기 게임 🌠</h1>
 <div id="score">점수: 0</div>
@@ -154,25 +152,25 @@ function createStar() {
   const star = document.createElement('div');
   star.classList.add('star');
 
-  // ⭐ 별 크기 50% 증가 (기존 8~14 → 12~21)
-  const size = random(12, 21);
+  // 별 크기 50% 증가
+  const size =  21;
   star.style.width = `${size}px`;
   star.style.height = `${size}px`;
 
-  // 플레이 영역 기준으로 별 위치 계산
+  // ⭐ 별 시작 위치: playArea 내부 윗변
   const playRect = playArea.getBoundingClientRect();
-  const minX = playRect.left;
-  const maxX = playRect.right - size;
+  const containerRect = game.getBoundingClientRect();
+  const minX = playRect.left - containerRect.left;
+  const maxX = playRect.right - containerRect.left - size;
   const startX = random(minX, maxX);
-  star.style.left = `${startX}px`;
+  const startY = playRect.top - containerRect.top; // 여기서 playArea 위쪽
 
-  // y 범위: playArea의 위쪽에서 시작, 아래쪽 테두리까지
-  const startY = playRect.top - size;
-  const endY = playRect.bottom - size;
+  star.style.left = `${startX}px`;
   star.style.top = `${startY}px`;
 
-  const fallSpeed = random(2, 4);
   game.appendChild(star);
+
+  const fallSpeed = random(2, 4);
 
   const fall = setInterval(() => {
     if (!gameActive) {
@@ -181,14 +179,17 @@ function createStar() {
       return;
     }
 
-    star.style.top = `${star.offsetTop + fallSpeed}px`;
+    const nextTop = parseFloat(star.style.top) + fallSpeed;
 
-    // playArea의 아래 테두리에 닿으면 제거
-    const starRect = star.getBoundingClientRect();
-    if (starRect.bottom >= playRect.bottom) {
-      star.remove();
+    // playArea 아래쪽 테두리에 닿으면 제거
+    const bottomLimit = playRect.bottom - containerRect.top - size;
+    if (nextTop >= bottomLimit) {
       clearInterval(fall);
+      star.remove();
+      return;
     }
+
+    star.style.top = `${nextTop}px`;
   }, 16);
 
   star.addEventListener('click', () => {
